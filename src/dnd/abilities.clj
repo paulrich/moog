@@ -60,21 +60,53 @@
          unrestricted
          (take-while #(> value (first %)) limits)))))
 
-(defmacro table-1a [[[key param]] pred & body]
-  `(fn [~param] (condp ~pred (or (~key ~param) ~param) ~@body)))
+(defmacro table [& table-def]
+  (let [{:keys [params body]} (apply parse-table {} table-def)]
+    `(fn ~(vec (vals params)) ~body)))
 
-(defmacro table-2 [[[key1 param1] [key2 param2]] [col-pred & col-keys] row-pred & table-body]
-  `(fn [~param1 ~param2]
-     (let [row-data# (condp ~row-pred (~key1 ~param1) ~@table-body)
-           expr# (~key2 ~param2)]
-       (row-data# ((zipmap '~col-keys (range))
-                   (first (filter #(~col-pred % expr#) '~col-keys)))))))
+(defn parse-table
+  ([metadata [pred [entity key] & table-data]]
+     (let [{:keys [params body]} (reduce process-subtables metadata table-data)
+           params (merge {entity (gensym)} params)
+           param (params entity)]
+       {:params
+        :body (
+               `(condp ~pred (if (ifn? ~param) (~param ~key) ~param) ~@table-body))}))
+  
+  ([metadata [pred [entity key] col-data] table-rows]
+     (let [{:keys [params body]} (parse-table metadata table-rows)
+           params (merge {entity (gensym)} params)
+           param (params entity)]
+       {:params params
+        :body `(let [expr# (if (ifn? ~param) (~param ~key) ~param)
+                     column# (first (filter #(~pred % expr#) ~col-data))
+                     index# ((zipmap ~col-data (range)) column#)]
+                 (if (integer? index#) (~body index#) ~body))})))
 
-(defmacro table-2a [[[key1 param1] [key2 param2]] [col-pred & col-keys] row-pred & table-body]
-  `(fn [~param1] (condp ~row-pred (~key1 ~param1) ~@table-body)))
+(defn process-subtables [acc table-form]
+  (if (and (seq? table-form) (= 'table (first table-form)))
+    (apply parse-table acc (rest table-form))
+    (merge-with conj-dl acc {:body table-form})))
 
-(defmacro table-2b [[kp1 [key2 param2]] [col-pred & col-keys] row-pred & table-body]
-  `(table-1a (~kp1) ~row-pred ~@table-body))
+3-d syntax
+(table (lte (char int) 0 (table ...) 1 (table ...) 2 (table ...)))
+
+(defn comp-maybe [f1 f2]
+  (let [chain (comp f2 f1)]
+    (fn [& args]
+      (apply chain args))))
+
+(defn chainable [f n]
+  (fn [& args]
+    (let [arg (nth args n)]
+      (f arg))))
+
+(defn drink-potion [mod-attr effect duration char]
+  (fn [attr]
+    (cond
+      (= attr mod-attr) (effect (char attr))
+      (= attr :eot) (if (= duration 1) char (drink-potion mod-attr effect (dec duration) char))
+      :hi! (char attr))))
 
 (defn lte [x y]
   (let [lt (fnil > -1 Integer/MAX_VALUE)]
@@ -90,4 +122,4 @@
   (let [param-list (vec (repeatedly (count params) gensym))]
     `(fn ~param-list (condp #(~pred %2 %1) (apply ~key ~param-list) ~@body))))
 
-   ; bad keys: k u 9 0 c maybe f maybe j 5 is a little weird
+   ; bad keys: k u 9 0 c maybe f maybe j 5 is a little weird 6 for sure
