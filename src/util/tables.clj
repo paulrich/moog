@@ -1,35 +1,35 @@
 (ns util.tables)
 
-(defn table-parse [[[entity key] pred & body]]
+(declare table-parse)
+
+(defn add-param-if-absent [raw-params params entity]
+  (if-let [param (params entity)]
+    [raw-params param params]
+    (let [param (gensym)]
+      [(conj raw-params entity) param (merge {entity param} params)])))
+
+(defn parse-subtables [[raw-params params body] element]
+  (if (and (seq? element) (= 'table (first element)))
+    (let [[raw-params params subtable] (table-parse raw-params params (rest element))]
+      [raw-params params (conj body subtable)])
+    [raw-params params (conj body element)]))
+
+(defn table-parse [raw-params params [[entity key] pred & body]]
   (if (vector? (first body))
-    (let [col-data (first body)]
-      `(fn [row-param#]
-         (fn table-2d#
-           ([] (~(table-parse (rest body)) row-param#))
-           ([col-param#]
-              ((zipmap ~col-data (~(table-parse (rest body)) col-param#))
-               (some #(if (~pred (row-param# ~key) %) %) ~col-data))))))
-    `(fn [param#] (condp ~pred (param# ~key) ~@body))))
+    (let [col-data (first body)
+          [raw-params params row-body] (table-parse raw-params params (rest body))
+          [raw-params param params] (add-param-if-absent raw-params params entity)]
+      [raw-params params
+       `((zipmap ~col-data ~row-body)
+         (some #(if (~pred (~param ~key) %) %) ~col-data))])
+    (let [[raw-params param params] (add-param-if-absent raw-params params entity)
+          [raw-params params body] (reduce parse-subtables [raw-params params []] body)]
+      [raw-params params `(condp ~pred (~param ~key) ~@(seq body))])))
 
 (defn raw-table [table-data]
-  (table-parse table-data))
-
-(defn apply-args [fn args]
-  (if (= 1 (count args))
-    (fn (first args))
-    ((apply-args fn (rest args)) (first args))))
+  (let [[params param-map body] (table-parse [] {} table-data)]
+    [(vec (map param-map params)) body]))
 
 (defmacro table [& table-data]
-  (let [raw-fn (raw-table table-data)]
-    `(fn [& args#]
-       (apply-args ~raw-fn args#))))
-
-;; raw-table yields one-param functions which take a param and return a val
-;;   (or another function in the case of multi-axis tables)
-;; table collects args ((table ...) x y) => val | where table=3-axis definition
-;;;  and applies the args to each return value for as long as there are args
-;; raw-table for a 1-axis table is a function which yields a value
-;;   for a 2-axis table is a function that is defined with two arities:
-;;       parameterized version returns a function which looks up the value via the column def
-;;       1-arg version returns the entire row
-
+  (let [[params body] (raw-table table-data)]
+    `(fn ~params ~body)))
