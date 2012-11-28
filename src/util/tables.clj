@@ -1,47 +1,35 @@
-(ns dnd.util)
+(ns util.tables)
 
-(defmacro table [& table-def]
-  (let [{:keys [params body]} (apply parse-table {} table-def)]
-    `(fn ~(vec (vals params)) ~body)))
+(defn table-parse [[[entity key] pred & body]]
+  (if (vector? (first body))
+    (let [col-data (first body)]
+      `(fn [row-param#]
+         (fn table-2d#
+           ([] (~(table-parse (rest body)) row-param#))
+           ([col-param#]
+              ((zipmap ~col-data (~(table-parse (rest body)) col-param#))
+               (some #(if (~pred (row-param# ~key) %) %) ~col-data))))))
+    `(fn [param#] (condp ~pred (param# ~key) ~@body))))
 
-(defn parse-table
-  ([metadata [pred [entity key] & table-data]]
-     (let [{:keys [params body]} (reduce process-subtables metadata table-data)
-           params (merge {entity (gensym)} params)
-           param (params entity)]
-       {:params
-        :body (
-               `(condp ~pred (if (ifn? ~param) (~param ~key) ~param) ~@table-body))}))
-  
-  ([metadata [pred [entity key] col-data] table-rows]
-     (let [{:keys [params body]} (parse-table metadata table-rows)
-           params (merge {entity (gensym)} params)
-           param (params entity)]
-       {:params params
-        :body `(let [expr# (if (ifn? ~param) (~param ~key) ~param)
-                     column# (first (filter #(~pred % expr#) ~col-data))
-                     index# ((zipmap ~col-data (range)) column#)]
-                 (if (integer? index#) (~body index#) ~body))})))
+(defn raw-table [table-data]
+  (table-parse table-data))
 
-(defn process-subtables [acc table-form]
-  (if (and (seq? table-form) (= 'table (first table-form)))
-    (apply parse-table acc (rest table-form))
-    (merge-with conj-dl acc {:body table-form})))
+(defn apply-args [fn args]
+  (if (= 1 (count args))
+    (fn (first args))
+    ((apply-args fn (rest args)) (first args))))
 
-3-d syntax
-(table (lte (char int) 0 (table ...) 1 (table ...) 2 (table ...)))
+(defmacro table [& table-data]
+  (let [raw-fn (raw-table table-data)]
+    `(fn [& args#]
+       (apply-args ~raw-fn args#))))
 
-(defn lte [x y]
-  (let [lt (fnil > -1 Integer/MAX_VALUE)]
-   (or (= x y) (lt x y))))
-
-                                        ;lte nil 3  false
-            ;lte 3 nil  false (this one might not matter; depends on order of rows in table)
-                                        ;lte nil nil true
-                                        ;lte 3 3 true
-                                        ;lte 4 3 true
-
-(defmacro table-a [[& params] row-key pred & body]
-  (let [param-list (vec (repeatedly (count params) gensym))]
-    `(fn ~param-list (condp #(~pred %2 %1) (apply ~key ~param-list) ~@body))))
+;; raw-table yields one-param functions which take a param and return a val
+;;   (or another function in the case of multi-axis tables)
+;; table collects args ((table ...) x y) => val | where table=3-axis definition
+;;;  and applies the args to each return value for as long as there are args
+;; raw-table for a 1-axis table is a function which yields a value
+;;   for a 2-axis table is a function that is defined with two arities:
+;;       parameterized version returns a function which looks up the value via the column def
+;;       1-arg version returns the entire row
 

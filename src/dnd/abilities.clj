@@ -60,11 +60,23 @@
          unrestricted
          (take-while #(> value (first %)) limits)))))
 
+(defn lte [x y]
+  (let [lt (fnil > -1 Integer/MAX_VALUE)]
+   (or (= x y) (lt x y))))
+
+                                        ;lte nil 3  false
+            ;lte 3 nil  false (this one might not matter; depends on order of rows in table)
+                                        ;lte nil nil true
+                                        ;lte 3 3 true
+                                        ;lte 4 3 true
+
 (defn drink-potion [mod-attr effect duration char]
   (fn [attr]
     (cond
       (= attr mod-attr) (effect (char attr))
-      (= attr :eot) (if (= duration 1) char (drink-potion mod-attr effect (dec duration) char))
+      (= attr :eot) (if (= duration 1) char
+                        (drink-potion mod-attr effect (dec duration)
+                                      (if-let [new-char (char :eot)] new-char char)))
       :hi! (char attr))))
 
    ; bad keys: k u 9 0 c maybe f maybe j 5 is a little weird 6 for sure
