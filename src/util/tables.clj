@@ -12,7 +12,10 @@
   (if (and (seq? element) (= 'table (first element)))
     (let [[raw-params params subtable] (table-parse raw-params params (rest element))]
       [raw-params params (conj body subtable)])
-    [raw-params params (conj body element)]))
+    (if (vector? element)
+      (let [[raw-params params element] (reduce parse-subtables [raw-params params []] element)]
+        [raw-params params (conj body element)])
+      [raw-params params (conj body element)])))
 
 (defn table-parse [raw-params params [[entity key] pred & body]]
   (if (vector? (first body))
