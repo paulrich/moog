@@ -69,6 +69,7 @@
                           (character# ~ability)))})]
     (apply merge (map create-fn restriction-defs))))
 
+;; return map of attribute => function[character] mappings
 (def class-restrictions
   (restrict-classes
    [strength               
@@ -123,7 +124,7 @@
                                       (if-let [new-char (char :eot)] new-char char)))
       :hi! (char attr))))
 
-(def hit-probability "melee"
+(def hit-probability "bonus to melee roll"
   (table
    (>= character :strength)
    3 -3
@@ -135,7 +136,7 @@
              99 2
              100 3)))
 
-(def damage-adjustment "melee combat only"
+(def damage-adjustment "bonus; melee combat only"
   (table
    (>= character :strength)
    5 -1
@@ -179,13 +180,13 @@
              99 4
              100 5)))
 
-(def open-locked-door "one attempt only; includes locked, barred, wizard-locked or magically held"
+(def open-locked-door "roll d6 (less), one attempt only; includes locked, barred, wizard-locked or magically held"
   (table (gte character :exceptional-str)
          90 0
          99 1
          100 2))
 
-(def bend-bars "also lift gates; can try each once, total of two (when applicable)"
+(def bend-bars "percent chance; also lift gates; can try each once, total of two (when applicable)"
   (table (gte character :strength)
          7 0
          9 1

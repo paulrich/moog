@@ -7,7 +7,7 @@
   (fn self [attribute]
     (cond
      (#{:eot} attribute) self
-     (fn? attribute) abilities
+     (fn? attribute) (attribute abilities)
      :else (abilities attribute))))
 
 (defn character-class [character]
