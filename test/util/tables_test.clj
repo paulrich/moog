@@ -42,3 +42,6 @@
 (fact "inverted 3-axis table"
       ((table (= monster :level) [1] (= char :level) 2 [(table (= monster :str) 3 4)])
        {:level 2} {:level 1 :str 3}) => 4)
+
+(fact "short rows default to nil"
+      ((table (= monster :level) [1 2 3] (= char :level) 4 [5]) {:level 4} {:level 2}) => nil)

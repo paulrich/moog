@@ -29,6 +29,6 @@
 (fact (parse-restrictions [[5 :only :magic-user]
                            [12 :assassin :paladin]] 4) => #{:magic-user})
 
-(fact (max-spell-level-cleric {:wisdom 17}) => 6)
+(fact (max-spell-level {:class :cleric :wisdom 17}) => 6)
 
-(fact (max-spell-level-magic_user {:intelligence 9}) => 4)
+(fact (max-spell-level {:class :magic-user :intelligence 9}) => 4)
