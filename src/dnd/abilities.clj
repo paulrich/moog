@@ -50,7 +50,7 @@
                                        (rest classes) classes)))
           (set classes) limits))
 
-(defn parse-restrictions [[[lower-limit _ solo-class] & limits] value]
+(defn parse-restrictions [value [[lower-limit _ solo-class] & limits]]
   (let [unrestricted (unrestricted-classes limits)]
     (if (<= value lower-limit) #{solo-class}
         (reduce
@@ -64,9 +64,9 @@
 (defmacro ^:private restrict-classes [& restriction-defs]
   (let [create-fn (fn [[ability & restrictions]]
                     `{~ability (fn [character#]
-                         (~'parse-restrictions
-                          ~(vec restrictions)
-                          (character# ~ability)))})]
+                         ((fnil ~'parse-restrictions 0)
+                          (character# ~ability)
+                          ~(vec restrictions)))})]
     (apply merge (map create-fn restriction-defs))))
 
 ;; return map of attribute => function[character] mappings

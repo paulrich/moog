@@ -24,11 +24,10 @@
 (fact (know-spell? {:intelligence 14}) => 55)
 
 (fact (minimum-spells {:intelligence 17}) => 8)
-
 (fact (maximum-spells {:intelligence 18}) => 18)
-(fact (parse-restrictions [[5 :only :magic-user]
-                           [12 :assassin :paladin]] 4) => #{:magic-user})
+
+(fact (parse-restrictions 4 [[5 :only :magic-user]
+                           [12 :assassin :paladin]]) => #{:magic-user})
 
 (fact (max-spell-level {:class :cleric :wisdom 17}) => 6)
-
 (fact (max-spell-level {:class :magic-user :intelligence 9}) => 4)

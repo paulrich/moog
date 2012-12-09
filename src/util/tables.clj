@@ -43,5 +43,4 @@
         `(fn ~@body)))))
 
 (defn gte [x y]
-  (let [gt (fnil > -1 -1)]
-   (or (= x y) (gt x y))))
+  (or (= x y) ((fnil > -1 -1) x y)))
