@@ -1,13 +1,9 @@
 (ns dnd.abilities
-  (:use dnd.dice
-        util.tables))
+  (:use [dnd dice classes]
+        [util tables common])
+  (:refer-clojure :exclude [class]))
 
-(defmacro ^:private ability [& ability-list]
-  (let [do-me (map #(list 'def % (keyword %)) ability-list)]
-    (concat (cons 'do do-me)
-     (list `(def ~'abilities [~@ability-list])))))
-
-(ability strength intelligence wisdom dexterity constitution charisma)
+(define-keyword-list abilities strength intelligence wisdom dexterity constitution charisma)
 
 (defn roll-ability [] (roll 3 d 6))
 
@@ -30,19 +26,6 @@
 (defn method-4 []
   (let [create-character #(assign-abilities roll-ability)]
     (repeatedly 12 create-character)))
-
-(def classes
-  [:fighter
-   :assassin
-   :paladin
-   :ranger
-   :monk
-   :magic-user
-   :thief
-   :cleric
-   :druid
-   :illusionist
-   ])
 
 (defn- unrestricted-classes [limits]
   (reduce (fn [unrestricted [limit & classes]]
@@ -125,22 +108,22 @@
       :hi! (char attr))))
 
 (table hit-probability "bonus to melee roll"
-       (>= character :strength)
+       (>= % (character :strength))
        3 -3
        5 -2
        7 -1
        16 0
-       18 (table (gte character :exceptional-str)
+       18 (table (gte % (character :exceptional-str))
                  50 1
                  99 2
                  100 3))
 
 (table damage-adjustment "bonus; melee combat only"
-       (>= character :strength)
+       (>= % (character :strength))
        5 -1
        15 0
        17 1
-       18 (table (gte character :exceptional-str)
+       18 (table (gte % (character :exceptional-str))
                  nil 2
                  75 3
                  90 4
@@ -148,7 +131,7 @@
                  100 6))
 
 (table weight-allowance "gold pieces over maximum"
-       (>= character :strength)
+       (>= % (character :strength))
        3 -350
        5 -250
        7 -150
@@ -157,7 +140,7 @@
        15 200
        16 300
        17 500
-       18 (table (gte character :exceptional-str)
+       18 (table (gte % (character :exceptional-str))
                  nil 750
                  50 1000
                  75 1250
@@ -167,23 +150,23 @@
 
 (table open-doors "Roll this number or less on a d6 for a heavy or stuck door.
    Successive attempts are allowed but take time and cause noise"
-       (>= character :strength)
+       (>= % (character :strength))
        7 1
        15 2
        17 3
-       18 (table (gte character :exceptional-str)
+       18 (table (gte % (character :exceptional-str))
                  50 3
                  99 4
                  100 5))
 
 (table open-locked-door "roll d6 (less), one attempt only; includes locked, barred, wizard-locked or magically held"
-       (gte character :exceptional-str)
+       (gte % (character :exceptional-str))
        90 0
        99 1
        100 2)
 
 (table bend-bars "percent chance; also lift gates; can try each once, total of two (when applicable)"
-       (gte character :strength)
+       (gte % (character :strength))
        7 0
        9 1
        11 2
@@ -191,7 +174,7 @@
        15 7
        16 10
        17 13
-       18 (table (gte character :exceptional-str)
+       18 (table (gte % (character :exceptional-str))
                  nil 16
                  50 20
                  75 25
@@ -200,7 +183,7 @@
                  100 40))
 
 (table languages "possible number of additional languages known"
-       (>= character :intelligence)
+       (>= % (character :intelligence))
        7 0
        9 1
        11 2
@@ -211,7 +194,7 @@
        18 7)
 
 (table know-spell? "chance for character to know any given spell"
-       (>= character :intelligence)
+       (>= % (character :intelligence))
        8 0
        9 35
        12 45
@@ -222,7 +205,7 @@
        19 95)
 
 (table minimum-spells "minimum number of spells known per spell level"
-       (>= character :intelligence)
+       (>= % (character :intelligence))
        8 0
        9 4
        12 5
@@ -233,7 +216,7 @@
        19 10)
 
 (table maximum-spells "the maxiumum number of spells that can be known"
-       (>= character :intelligence)
+       (>= % (character :intelligence))
        8 0
        9 6
        12 7
@@ -244,7 +227,7 @@
        :all) ; all spells can be known at 19 int
 
 (table max-spell-level
-       (= character :class)
+       (= % (character :class))
        :magic-user (let [int (character :intelligence)]
                      (cond
                       (<= int 8) 0
@@ -258,7 +241,7 @@
        "You can't cast spells")
 
 (table will-save-adjustment
-       (>= character :wisdom)
+       (>= % (character :wisdom))
        3 -3
        4 -2
        7 -1
