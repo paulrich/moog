@@ -40,7 +40,7 @@
            (if (vector? (first body))
              (let [col-data (first body)]
                `((zipmap ~col-data ~(table-parse (rest body)))
-                 (first-match ~(col-clause) ~col-data)))
+                 (find-first ~(col-clause) ~col-data)))
              `(condp ~@(row-clause) ~@(doall (map parse-subtables body))))))]
     
     (fn [table-data]

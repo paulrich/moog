@@ -1,7 +1,6 @@
 (ns dnd.abilities
   (:use [dnd dice classes]
-        [util tables common])
-  (:refer-clojure :exclude [class]))
+        [util tables common]))
 
 (define-keyword-list abilities strength intelligence wisdom dexterity constitution charisma)
 
@@ -52,7 +51,7 @@
                           ~(vec restrictions)))})]
     (apply merge (map create-fn restriction-defs))))
 
-;; return map of attribute => function[character] mappings
+;; return map of attribute => fn[character] mappings where each fn returns a set of valid classes
 (def class-restrictions
   (restrict-classes
    [strength               
@@ -251,5 +250,3 @@
        17 3
        18 4)
 
-
-   ; bad keys: k u 9 0 c maybe f maybe j 5 is a little weird 6 for sure
