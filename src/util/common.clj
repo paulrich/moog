@@ -1,4 +1,11 @@
-(ns util.common)
+(ns util.common
+  (:use [uncomplicate.fluokitten.core :as kitten]))
+
+(defn maybe [x]
+  (if x (kitten/just x)))
+
+(defn monad-fn [f]
+  #(maybe (f %)))
 
 (defn if-is [x pred]
   (if (pred x) x))
@@ -7,11 +14,18 @@
   ([pred coll]
      (some #(if (pred %) %) coll))
   ([fun expr coll]
-     (some #(if (fun % expr) %))))
+     (some #(if (fun % expr) %) coll)))
+
+(defn super-lazy [s]
+  (lazy-seq (if-let [x (first s)] (cons x (super-lazy (rest s))))))
 
 (defn remove-first [item sequence]
   (let [[head [_ & tail]] (split-with #(not= item %) sequence)]
     (concat head tail)))
+
+(defn- ns-qualified-symbol [k]
+  (-> k name symbol (#(ns-resolve *ns* %))
+   (some-> meta :ns str (symbol (name k)))))
 
 (defmacro define-keyword-list [name & enumeration]
   (let [do-me (map #(list 'def % (keyword %)) enumeration)]
